@@ -1,0 +1,1 @@
+This directory will generate images during the training process.
