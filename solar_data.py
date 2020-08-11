@@ -255,6 +255,39 @@ def random_solardisk(X, Y):
     new_X = np.expand_dims(new_X, axis=-1)
     return np.array(new_X), np.array(new_Y)
 
+def resize_solar_radius(X, Y): #scale
+    width = 512
+    height = 512
+    shrink_r = 1 # 0.9
+    enlarge_r = 1 # 1.1
+    new_X = []
+    new_Y = []
+    for ic in range(len(Y[:, 0])):  # batch里面循环遍历
+        shrink_enlarge = round(random.randint(0,1))
+        original_image = X[ic, :, :, 0]
+        original_x = Y[ic, 0]
+        original_y = Y[ic, 1]
+        solar_radius = Y[ic, 2]
+        if shrink_enlarge == 0: #shrink
+            r_factor = round(random.uniform(shrink_r, 1), 3)
+            size = (int(width*r_factor), int(height*r_factor))
+            r_X = cv2.resize(original_image, size)
+            padd_value = round((width - size[0]) / 2)
+            r_X = cv2.copyMakeBorder(r_X,padd_value,padd_value,padd_value,padd_value,cv2.BORDER_CONSTANT,value=[0])
+            r_X = cv2.resize(r_X, [width, height])
+            r_Y = np.array([original_x+padd_value, original_y+padd_value, solar_radius*r_factor])
+        if shrink_enlarge == 1: #enlarge
+            r_factor = round(random.uniform(enlarge_r, 1), 3)
+            size = (int(width * r_factor), int(height * r_factor))
+            padd_value = abs(round((width - size[0]) / 2))
+            r_X = original_image[padd_value:height-padd_value, padd_value:width-padd_value]
+            r_X = cv2.resize(r_X, [width, height])
+            r_Y = np.array([original_x - padd_value, original_y - padd_value, solar_radius * r_factor])
+        new_X.append(r_X)
+        new_Y.append(r_Y)
+    new_X = np.expand_dims(new_X, axis=-1)
+    return np.array(new_X), np.array(new_Y)
+
 
 # Build a data generator
 def my_dataset_generator(batch_size,
@@ -284,6 +317,7 @@ def my_dataset_generator(batch_size,
             X_batches[i], Y_batches[i] = shuffle_two_array(X_batches[i], Y_batches[i])  # 打乱每个batch数据
             X = np.array(list(map(load_batch_image, X_batches[i])))
             Y = np.array(Y_batches[i])
+            # new_X, new_Y = resize_solar_radius(X, Y)
             new_X, new_Y = random_solardisk(X, Y)
 
             new_drawcicle_Y = new_Y
